@@ -14,14 +14,6 @@ name = "aoc2020-01-report-repair"
 version = "0.1.0"
 
 [[package]]
-name = "aoc2020-02-password-philosophy"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "regex",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -32,6 +24,14 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
+
+[[package]]
+name = "password-philosophy"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "regex",
+]
 
 [[package]]
 name = "regex"
