@@ -1,5 +1,5 @@
 [package]
-name = "day01"
+name = "aoc2020-01-report-repair"
 version = "0.1.0"
 authors = ["Jimmy Chu <jimmychu0807@gmail.com>"]
 edition = "2018"
