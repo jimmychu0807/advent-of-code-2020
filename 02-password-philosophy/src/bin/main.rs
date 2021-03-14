@@ -1,18 +1,7 @@
-use std::fs;
 use password_philosophy::PasswordSpec;
+use shared::{read_file};
 
 const INPUT_PATH: &str = "02-password-philosophy/data/input.dat";
-
-fn read_file(path: &str) -> Result<Vec<String>, &'static str> {
-	let contents = fs::read_to_string(path)
-		.map_err(|_| "File cannot be read")?;
-
-	let lines: Vec<String> = contents.split('\n')
-		.map(|line| line.to_string())
-		.collect();
-
-	Ok(lines)
-}
 
 fn main() {
 	let lines = read_file(INPUT_PATH).unwrap();

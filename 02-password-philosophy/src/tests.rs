@@ -2,11 +2,11 @@ use crate::PasswordSpec;
 
 #[test]
 fn test_create_struct_regular() {
-	const TEST_STR: &str = "1-3 a: abcde";
+	const TEST_STR: &str = "11-13 a: abcde";
 	let ps = PasswordSpec::new(TEST_STR).unwrap();
 	assert_eq!(
 		ps,
-		PasswordSpec { first: 1, second: 3, test_char: 'a', passphrase: "abcde".to_string() }
+		PasswordSpec { first: 11, second: 13, test_char: 'a', passphrase: "abcde".to_string() }
 	);
 }
 

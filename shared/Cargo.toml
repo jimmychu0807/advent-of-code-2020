@@ -1,18 +1,9 @@
 [package]
-name = "password-philosophy"
+name = "shared"
 version = "0.1.0"
 authors = ["Jimmy Chu <jimmychu0807@gmail.com>"]
 edition = "2018"
 
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-name = "password-philosophy"
-path = "src/bin/main.rs"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [dependencies]
-regex = "1"
-lazy_static = "^1.4.0"
-shared = { path = "../shared" }
