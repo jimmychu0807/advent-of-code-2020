@@ -2,5 +2,6 @@
 members = [
 	"shared",
 	"01-report-repair",
-	"02-password-philosophy"
+	"02-password-philosophy",
+	"03-toboggan-trajectory",
 ]

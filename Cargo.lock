@@ -57,3 +57,10 @@ dependencies = [
 [[package]]
 name = "shared"
 version = "0.1.0"
+
+[[package]]
+name = "toboggan-trajectory"
+version = "0.1.0"
+dependencies = [
+ "shared",
+]

@@ -61,3 +61,5 @@ The locations you'd check in the above example are marked here with O where ther
 In this example, traversing the map using this slope would cause you to encounter 7 trees.
 
 Starting at the top-left corner of your map and following a slope of right 3 and down 1, how many trees would you encounter?
+
+To begin, [get your puzzle input](./data/input01.dat).
