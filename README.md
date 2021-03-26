@@ -4,3 +4,4 @@ You are welcome 😉
 
 - [Day 01](01-report-repair)
 - [Day 02](02-password-philosophy)
+- [Day 03](03-toboggan-trajectory)
