@@ -34,3 +34,17 @@ fn slide_small_2() {
 	let slope = Slope::try_from(input).unwrap();
 	assert_eq!(slope.slide(2, 1), 2);
 }
+
+#[test]
+fn slide_slope_2a() {
+	let input = vec!["#..", "..#", "..#"];
+	let slope = Slope::try_from(input).unwrap();
+	assert_eq!(slope.slide(2, 2), 2);
+}
+
+#[test]
+fn slide_slope_2b() {
+	let input = vec!["#.", ".#", ".#"];
+	let slope = Slope::try_from(input).unwrap();
+	assert_eq!(slope.slide(1, 2), 2);
+}
