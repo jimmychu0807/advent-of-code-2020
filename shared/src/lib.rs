@@ -10,3 +10,7 @@ pub fn read_file(path: &str) -> Result<Vec<String>, &'static str> {
 
 	Ok(lines)
 }
+
+pub fn vec_string_to_str(lines: &[String]) -> Vec<&str> {
+	lines.iter().map(|s| &**s).collect()
+}
