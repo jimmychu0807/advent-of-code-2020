@@ -1,9 +1,12 @@
 use lazy_static::lazy_static;
 use regex::Regex;
+// use std::error::Error;
 use shared::{read_file};
 
 #[cfg(test)]
 mod tests;
+
+// -- ReadState enum --
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ReadState {
@@ -17,40 +20,7 @@ impl Default for ReadState {
 	}
 }
 
-pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
-	let lines = read_file(input)?;
-
-	let mut state = ReadState::default();
-	let mut passports = Vec::new();
-	let mut builder: Option<PassportBuilder> = None;
-
-	for line in lines {
-		let trimmed = line.trim();
-
-		if trimmed.len() == 0 {
-			if let ReadState::LINE = state {
-				// prev line has content and reaching empty line now
-				if let Some(builder) = builder.take() {
-					match builder.build() {
-						Ok(passport) => { passports.push(passport) }
-						Err(err) => { return Err(err) }
-					}
-				}
-			}
-			state = ReadState::EMPTY;
-		} else {
-			if let ReadState::EMPTY = state {
-				// prev line is empty and reaching a line with content
-				builder = Some(Passport::builder());
-			}
-			// process the line with content here
-			builder = Some(builder.ok_or("Passport builder is double-spent")?.process(trimmed)?);
-			state = ReadState::LINE;
-		}
-	}
-
-	Ok(passports)
-}
+// -- Passport struct --
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Passport {
@@ -69,6 +39,21 @@ impl Passport {
 		PassportBuilder::default()
 	}
 }
+
+// -- PassportBuilderError struct --
+
+#[derive(Debug)]
+pub struct PassportBuilderError {
+	err: String
+}
+
+impl PassportBuilderError {
+	pub fn new(err: &str) -> Self {
+		PassportBuilderError { err: err.to_string() }
+	}
+}
+
+// -- PassportBuilder struct --
 
 #[derive(Default, Clone, PartialEq)]
 pub struct PassportBuilder {
@@ -122,4 +107,42 @@ impl PassportBuilder {
 			cid: self.cid.map(|s| s.to_string()),
 		})
 	}
+}
+
+// -- other public functions --
+
+pub fn read_from_file(input: &str) -> Result<(Vec<Passport>, Vec<PassportBuilderError>), &'static str> {
+	let lines = read_file(input)?;
+
+	let mut state = ReadState::default();
+	let mut passports = Vec::new();
+	let mut errors = Vec::new();
+	let mut builder: Option<PassportBuilder> = None;
+
+	for line in lines {
+		let trimmed = line.trim();
+
+		if trimmed.len() == 0 {
+			if let ReadState::LINE = state {
+				// prev line has content and reaching empty line now
+				if let Some(builder) = builder.take() {
+					match builder.build() {
+						Ok(passport) => { passports.push(passport) }
+						Err(err) => { errors.push(PassportBuilderError::new(err)) }
+					}
+				}
+			}
+			state = ReadState::EMPTY;
+		} else {
+			if let ReadState::EMPTY = state {
+				// prev line is empty and reaching a line with content
+				builder = Some(Passport::builder());
+			}
+			// process the line with content here
+			builder = Some(builder.ok_or("Passport builder is double-spent")?.process(trimmed)?);
+			state = ReadState::LINE;
+		}
+	}
+
+	Ok((passports, errors))
 }

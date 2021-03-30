@@ -26,7 +26,7 @@ fn test_valid_from_str() {
 #[test]
 fn test_valid_from_file() {
 	let filepath = "data/tests/test_valid01.dat";
-	let passports = read_from_file(filepath).unwrap();
+	let (passports, errors) = read_from_file(filepath).unwrap();
 	assert_eq!(passports.len(), 1);
 	assert_eq!(passports[0], Passport {
 		byr: 1937,
@@ -38,6 +38,7 @@ fn test_valid_from_file() {
 		pid: "860033327".to_string(),
 		cid: Some("147".to_string())
 	});
+	assert_eq!(errors.len(), 0);
 }
 
 #[test]
@@ -57,6 +58,7 @@ fn test_invalid_from_str() {
 #[test]
 fn test_invalid_from_file() {
 	let filepath = "data/tests/test_invalid01.dat";
-	let passports = read_from_file(filepath).unwrap();
+	let (passports, errors) = read_from_file(filepath).unwrap();
 	assert_eq!(passports.len(), 0);
+	assert_eq!(errors.len(), 1);
 }
