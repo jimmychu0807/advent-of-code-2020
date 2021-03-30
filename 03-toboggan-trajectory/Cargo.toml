@@ -11,8 +11,6 @@ path = "src/lib.rs"
 name = "toboggan-trajectory"
 path = "src/bin/main.rs"
 
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 shared = { path = "../shared" }
