@@ -5,6 +5,7 @@ use shared::{read_file};
 #[cfg(test)]
 mod tests;
 
+#[derive(Clone, PartialEq, Debug)]
 pub enum ReadState {
 	EMPTY,
 	LINE,
@@ -21,7 +22,7 @@ pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
 
 	let mut state = ReadState::default();
 	let mut passports = Vec::new();
-	let mut builder: PassportBuilder;
+	let mut builder: Option<PassportBuilder> = None;
 
 	for line in lines {
 		let trimmed = line.trim();
@@ -29,18 +30,21 @@ pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
 		if trimmed.len() == 0 {
 			if let ReadState::LINE = state {
 				// prev line has content and reaching empty line now
-				if let Ok(passport) = builder.build() {
-					passports.push(passport);
+				if let Some(builder) = builder.take() {
+					match builder.build() {
+						Ok(passport) => { passports.push(passport) }
+						Err(err) => { return Err(err) }
+					}
 				}
 			}
 			state = ReadState::EMPTY;
 		} else {
 			if let ReadState::EMPTY = state {
 				// prev line is empty and reaching a line with content
-				builder = Passport::builder();
+				builder = Some(Passport::builder());
 			}
 			// process the line with content here
-			builder = builder.process(trimmed)?;
+			builder = Some(builder.ok_or("Passport builder is double-spent")?.process(trimmed)?);
 			state = ReadState::LINE;
 		}
 	}
@@ -48,7 +52,7 @@ pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
 	Ok(passports)
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Passport {
 	byr: u32,
 	eyr: u32,
@@ -98,7 +102,7 @@ impl PassportBuilder {
 				"hcl" => self.hcl = Some(vec[1].to_string()),
 				"hgt" => self.hgt = Some(vec[1].to_string()),
 				"pid" => self.pid = Some(vec[1].to_string()),
-				"cid" => self.pid = Some(vec[1].to_string()),
+				"cid" => self.cid = Some(vec[1].to_string()),
 				_ => { return Err("Unknown key for PassportBuilder") }
 			};
 		}
@@ -106,16 +110,16 @@ impl PassportBuilder {
 		Ok(self)
 	}
 
-	pub fn build(&self) -> Result<Passport, &'static str> {
+	pub fn build(self) -> Result<Passport, &'static str> {
 		Ok(Passport {
 			byr: self.byr.ok_or("byr missing")?,
 			eyr: self.eyr.ok_or("eyr missing")?,
 			iyr: self.iyr.ok_or("iyr missing")?,
-			ecl: self.ecl.ok_or("ecl missing")?,
-			hcl: self.hcl.ok_or("hcl missing")?,
-			hgt: self.hgt.ok_or("hgt missing")?,
-			pid: self.pid.ok_or("pid missing")?,
-			cid: self.cid,
+			ecl: self.ecl.ok_or("ecl missing")?.to_string(),
+			hcl: self.hcl.ok_or("hcl missing")?.to_string(),
+			hgt: self.hgt.ok_or("hgt missing")?.to_string(),
+			pid: self.pid.ok_or("pid missing")?.to_string(),
+			cid: self.cid.map(|s| s.to_string()),
 		})
 	}
 }
