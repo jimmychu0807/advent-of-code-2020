@@ -9,14 +9,14 @@ fn test_valid_from_str() {
 
 	let mut passport = Passport::new();
 
-	assert_eq!(passport.valid().is_ok(), false);
+	assert_eq!(passport.validate_simplified().is_ok(), false);
 
 	for line in valid.iter() {
 		passport = passport.process(line).unwrap();
 	}
 
-	println!("{:?}", passport.valid());
-	assert_eq!(passport.valid().is_ok(), true);
+	println!("{:?}", passport.validate_simplified());
+	assert_eq!(passport.validate_simplified().is_ok(), true);
 
 	// Test fields in the passport
 	assert_eq!(passport.fields.get("byr"), Some(&1937.into()));
@@ -31,7 +31,7 @@ fn test_valid_from_file() {
 	assert_eq!(passports.len(), 1);
 	let passport = &passports[0];
 
-	assert_eq!(passport.valid().is_ok(), true);
+	assert_eq!(passport.validate_simplified().is_ok(), true);
 
 	// Test fields in the passport
 	assert_eq!(passport.fields.get("byr"), Some(&1937.into()));
@@ -47,8 +47,8 @@ fn test_valid_from_file_multiple_passports() {
 	let passport1 = &passports[0];
 	let passport2 = &passports[1];
 
-	assert_eq!(passport1.valid().is_ok(), true);
-	assert_eq!(passport2.valid().is_ok(), true);
+	assert_eq!(passport1.validate_simplified().is_ok(), true);
+	assert_eq!(passport2.validate_simplified().is_ok(), true);
 
 	// Test fields in the passport
 	assert_eq!(passport1.fields.get("pid"), Some(&"860033327".into()));
@@ -67,7 +67,7 @@ fn test_invalid_from_str() {
 		passport = passport.process(line).unwrap();
 	}
 
-	match passport.valid() {
+	match passport.validate_simplified() {
 		Ok(_) => { assert!(false) }
 		Err(err_vec) => { assert_eq!(err_vec, vec!(PassportInvalid::from("hgt"))) }
 	};
@@ -85,7 +85,7 @@ fn test_invalid_byr_from_str() {
 		passport = passport.process(line).unwrap();
 	}
 
-	match passport.valid() {
+	match passport.validate() {
 		Ok(()) => { assert!(false) },
 		Err(err_vecs) => {
 			assert_eq!(err_vecs.len(), 1);
@@ -106,7 +106,7 @@ fn test_invalid_hgt_from_str() {
 		passport = passport.process(line).unwrap();
 	}
 
-	match passport.valid() {
+	match passport.validate() {
 		Ok(()) => { assert!(false) },
 		Err(err_vecs) => {
 			assert_eq!(err_vecs.len(), 1);

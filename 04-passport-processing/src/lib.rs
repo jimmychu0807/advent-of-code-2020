@@ -131,15 +131,15 @@ impl Passport {
 
 		for &key in PASSPORT_REQ_KEYS.iter() {
 			match self.fields.get(key) {
-				Some(&PassportField::Num(val)) if key == "byr" && !(val >= 1920 && val <= 2002) => {
+				Some(&PassportField::Num(val)) if key == "byr" && !(1920..=2002).contains(&val) => {
 					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
 				},
 
-				Some(&PassportField::Num(val)) if key == "iyr" && !(val >= 2010 && val <= 2020) => {
+				Some(&PassportField::Num(val)) if key == "iyr" && !(2010..=2020).contains(&val) => {
 					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
 				},
 
-				Some(&PassportField::Num(val)) if key == "eyr" && !(val >= 2020 && val <= 2030) => {
+				Some(&PassportField::Num(val)) if key == "eyr" && !(2020..=2030).contains(&val) => {
 					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
 				},
 
@@ -154,8 +154,8 @@ impl Passport {
 							}
 
 							if let Ok(hgt_val) = measure_str.parse::<u32>() {
-								if (unit_str == "cm" && !(hgt_val >= 150 && hgt_val <= 193)) ||
-									(unit_str == "in" && !(hgt_val >= 59 && hgt_val <= 76)) {
+								if (unit_str == "cm" && !(150..=193).contains(&hgt_val)) ||
+									(unit_str == "in" && !(59..=76).contains(&hgt_val)) {
 									invalids.push(PassportInvalid::out_of_range(key, val));
 								}
 							} else {
