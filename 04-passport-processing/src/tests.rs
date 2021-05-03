@@ -15,6 +15,7 @@ fn test_valid_from_str() {
 		passport = passport.process(line).unwrap();
 	}
 
+	println!("{:?}", passport.valid());
 	assert_eq!(passport.valid().is_ok(), true);
 
 	// Test fields in the passport
@@ -70,4 +71,46 @@ fn test_invalid_from_str() {
 		Ok(_) => { assert!(false) }
 		Err(err_vec) => { assert_eq!(err_vec, vec!(PassportInvalid::from("hgt"))) }
 	};
+}
+
+#[test]
+fn test_invalid_byr_from_str() {
+	let valid = vec!(
+		"ecl:gry pid:860033327 eyr:2020 hcl:#fffffd",
+		"byr:1919 iyr:2017 cid:147 hgt:183cm"
+	);
+
+	let mut passport = Passport::new();
+	for line in valid.iter() {
+		passport = passport.process(line).unwrap();
+	}
+
+	match passport.valid() {
+		Ok(()) => { assert!(false) },
+		Err(err_vecs) => {
+			assert_eq!(err_vecs.len(), 1);
+			assert_eq!(err_vecs[0], PassportInvalid::out_of_range("byr", "1919"));
+		}
+	}
+}
+
+#[test]
+fn test_invalid_hgt_from_str() {
+	let valid = vec!(
+		"ecl:gry pid:860033327 eyr:2020 hcl:#fffffd",
+		"byr:1920 iyr:2017 cid:147 hgt:194cm"
+	);
+
+	let mut passport = Passport::new();
+	for line in valid.iter() {
+		passport = passport.process(line).unwrap();
+	}
+
+	match passport.valid() {
+		Ok(()) => { assert!(false) },
+		Err(err_vecs) => {
+			assert_eq!(err_vecs.len(), 1);
+			assert_eq!(err_vecs[0], PassportInvalid::out_of_range("hgt", "194cm"));
+		}
+	}
 }
