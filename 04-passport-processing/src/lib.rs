@@ -2,147 +2,226 @@ use lazy_static::lazy_static;
 use regex::Regex;
 // use std::error::Error;
 use shared::{read_file};
+use std::collections::HashMap;
 
 #[cfg(test)]
 mod tests;
+
+const PASSPORT_REQ_KEYS: [&str; 7] = ["byr", "eyr", "iyr", "ecl", "hcl", "hgt", "pid"];
 
 // -- ReadState enum --
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ReadState {
-	EMPTY,
-	LINE,
+	Empty,
+	Line,
 }
 
 impl Default for ReadState {
 	fn default() -> Self {
-		ReadState::EMPTY
+		ReadState::Empty
+	}
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum PassportField {
+	Num(u32),
+	Str(String),
+}
+
+impl From<&str> for PassportField {
+	fn from(val: &str) -> Self {
+		Self::Str(val.to_string())
+	}
+}
+
+impl From<u32> for PassportField {
+	fn from(val: u32) -> Self {
+		Self::Num(val)
+	}
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum PassportProcessError {
+	UnknownKey(String),
+	UnparsableU32(String),
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum PassportInvalid {
+	MissingField(String),
+	OutOfRange(String, String),
+	InvalidFormat(String, String),
+}
+
+impl From<&str> for PassportInvalid {
+	fn from(val: &str) -> Self {
+		Self::MissingField(val.to_string())
+	}
+}
+
+impl PassportInvalid {
+	pub fn out_of_range(key: &str, val: &str) -> Self {
+		Self::OutOfRange(key.to_string(), val.to_string())
+	}
+
+	pub fn invalid_format(key: &str, val: &str) -> Self {
+		Self::InvalidFormat(key.to_string(), val.to_string())
 	}
 }
 
 // -- Passport struct --
-
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct Passport {
-	byr: u32,
-	eyr: u32,
-	iyr: u32,
-	ecl: String,
-	hcl: String,
-	hgt: String,
-	pid: String,
-	cid: Option<String>,
+	pub fields: HashMap<String, PassportField>
 }
 
 impl Passport {
-	pub fn builder() -> PassportBuilder {
-		PassportBuilder::default()
+	pub fn new() -> Self {
+		Passport::default()
 	}
-}
 
-// -- PassportBuilderError struct --
-
-#[derive(Debug)]
-pub struct PassportBuilderError {
-	err: String
-}
-
-impl PassportBuilderError {
-	pub fn new(err: &str) -> Self {
-		PassportBuilderError { err: err.to_string() }
-	}
-}
-
-// -- PassportBuilder struct --
-
-#[derive(Default, Clone, PartialEq)]
-pub struct PassportBuilder {
-	byr: Option<u32>,
-	eyr: Option<u32>,
-	iyr: Option<u32>,
-	ecl: Option<String>,
-	hcl: Option<String>,
-	hgt: Option<String>,
-	pid: Option<String>,
-	cid: Option<String>,
-}
-
-impl PassportBuilder {
-	pub fn process(mut self, line: &str) -> Result<Self, &'static str> {
+	pub fn process(mut self, line: &str) -> Result<Self, PassportProcessError> {
 		lazy_static! {
 			// This unwrap() will not cause error.
 			static ref SPACES: Regex = Regex::new(r"\s+").unwrap();
 		}
+
 		let key_vals: Vec<&str> = SPACES.split(line).collect();
 		for key_val in key_vals {
 			let vec: Vec<&str> = key_val.split(':').collect();
 			match vec[0] {
-				"byr" => self.byr = Some(vec[1].parse::<u32>()
-					.or_else(|_| Err("Parsing byr to u32 failed"))?),
-				"eyr" => self.eyr = Some(vec[1].parse::<u32>()
-					.or_else(|_| Err("Parsing eyr to u32 failed"))?),
-				"iyr" => self.iyr = Some(vec[1].parse::<u32>()
-					.or_else(|_| Err("Parsing iyr to u32 failed"))?),
-				"ecl" => self.ecl = Some(vec[1].to_string()),
-				"hcl" => self.hcl = Some(vec[1].to_string()),
-				"hgt" => self.hgt = Some(vec[1].to_string()),
-				"pid" => self.pid = Some(vec[1].to_string()),
-				"cid" => self.cid = Some(vec[1].to_string()),
-				_ => { return Err("Unknown key for PassportBuilder") }
+				"byr" | "eyr" | "iyr" => {
+					let val = vec[1].parse::<u32>().map_err(|_| PassportProcessError::UnparsableU32(vec[1].to_string()))?;
+					self.fields.insert(vec[0].to_string(), PassportField::Num(val));
+				},
+				"ecl" | "hcl" | "hgt" | "pid" | "cid" => {
+					self.fields.insert(vec[0].to_string(), PassportField::Str(vec[1].to_string()));
+				}
+				_ => { return Err(PassportProcessError::UnknownKey(vec[0].to_string())) }
 			};
 		}
 
 		Ok(self)
 	}
 
-	pub fn build(self) -> Result<Passport, &'static str> {
-		Ok(Passport {
-			byr: self.byr.ok_or("byr missing")?,
-			eyr: self.eyr.ok_or("eyr missing")?,
-			iyr: self.iyr.ok_or("iyr missing")?,
-			ecl: self.ecl.ok_or("ecl missing")?.to_string(),
-			hcl: self.hcl.ok_or("hcl missing")?.to_string(),
-			hgt: self.hgt.ok_or("hgt missing")?.to_string(),
-			pid: self.pid.ok_or("pid missing")?.to_string(),
-			cid: self.cid.map(|s| s.to_string()),
-		})
+	pub fn validate_simplified(&self) -> Result<(),Vec<PassportInvalid>> {
+		let mut invalids = Vec::new();
+
+		for key in PASSPORT_REQ_KEYS.iter() {
+			if self.fields.get(*key).is_none() {
+				invalids.push(PassportInvalid::from(*key));
+			}
+		}
+
+		if !invalids.is_empty() { return Err(invalids) }
+		Ok(())
+	}
+
+	pub fn validate(&self) -> Result<(),Vec<PassportInvalid>> {
+		const ECL_VALS: [&str; 7] = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
+		lazy_static! {
+			// This unwrap() will not cause error.
+			static ref HGT_REGEX: Regex = Regex::new(r"^(\d+)(\w+)$").unwrap();
+			static ref HCL_REGEX: Regex = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
+			static ref PID_REGEX: Regex = Regex::new(r"^\d{9}$").unwrap();
+		}
+
+		let mut invalids = Vec::new();
+
+		for &key in PASSPORT_REQ_KEYS.iter() {
+			match self.fields.get(key) {
+				Some(&PassportField::Num(val)) if key == "byr" && !(1920..=2002).contains(&val) => {
+					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
+				},
+
+				Some(&PassportField::Num(val)) if key == "iyr" && !(2010..=2020).contains(&val) => {
+					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
+				},
+
+				Some(&PassportField::Num(val)) if key == "eyr" && !(2020..=2030).contains(&val) => {
+					invalids.push(PassportInvalid::out_of_range(key, &val.to_string()));
+				},
+
+				Some(&PassportField::Str(ref val)) if key == "hgt" => {
+					if let Some(captures) = HGT_REGEX.captures(val) {
+						if let (Some(measure), Some(unit)) = (captures.get(1), captures.get(2)) {
+							let measure_str = measure.as_str();
+							let unit_str = unit.as_str();
+
+							if unit_str != "cm" && unit_str != "in" {
+								invalids.push(PassportInvalid::invalid_format(key, val));
+							}
+
+							if let Ok(hgt_val) = measure_str.parse::<u32>() {
+								if (unit_str == "cm" && !(150..=193).contains(&hgt_val)) ||
+									(unit_str == "in" && !(59..=76).contains(&hgt_val)) {
+									invalids.push(PassportInvalid::out_of_range(key, val));
+								}
+							} else {
+								invalids.push(PassportInvalid::invalid_format(key, val));
+							}
+						} else {
+							invalids.push(PassportInvalid::invalid_format(key, val));
+						}
+					} else {
+						// Capture nothing here. Regard as invalid format.
+						invalids.push(PassportInvalid::invalid_format(key, val));
+					}
+				},
+
+				Some(&PassportField::Str(ref val)) if key == "hcl" && !HCL_REGEX.is_match(val) => {
+					invalids.push(PassportInvalid::invalid_format(key, val));
+				},
+
+				Some(&PassportField::Str(ref val)) if key == "ecl" && !ECL_VALS.contains(&val.as_ref()) => {
+					invalids.push(PassportInvalid::invalid_format(key, val));
+				},
+
+				Some(&PassportField::Str(ref val)) if key == "pid" && !PID_REGEX.is_match(val) => {
+					invalids.push(PassportInvalid::invalid_format(key, val));
+				},
+
+				Some(_) => {}, // this line is needed so those pass the above will become accepted here
+
+				None => { invalids.push(PassportInvalid::from(key)) },
+			}
+		}
+
+		if !invalids.is_empty() { return Err(invalids) }
+		Ok(())
 	}
 }
 
 // -- other public functions --
-
-pub fn read_from_file(input: &str) -> Result<(Vec<Passport>, Vec<PassportBuilderError>), &'static str> {
+pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
 	let lines = read_file(input)?;
 
 	let mut state = ReadState::default();
-	let mut passports = Vec::new();
-	let mut errors = Vec::new();
-	let mut builder: Option<PassportBuilder> = None;
+	let mut passports: Vec<Passport> = Vec::new();
+	let mut passport: Passport = Passport::new();
 
 	for line in lines {
 		let trimmed = line.trim();
 
-		if trimmed.len() == 0 {
-			if let ReadState::LINE = state {
+		if trimmed.is_empty() {
+			// current line is an empty line
+			if let ReadState::Line = state {
 				// prev line has content and reaching empty line now
-				if let Some(builder) = builder.take() {
-					match builder.build() {
-						Ok(passport) => { passports.push(passport) }
-						Err(err) => { errors.push(PassportBuilderError::new(err)) }
-					}
-				}
+				passports.push(passport.clone());
 			}
-			state = ReadState::EMPTY;
+			state = ReadState::Empty;
 		} else {
-			if let ReadState::EMPTY = state {
+			// current line is a non-empty line
+			if let ReadState::Empty = state {
 				// prev line is empty and reaching a line with content
-				builder = Some(Passport::builder());
+				passport = Passport::new();
 			}
 			// process the line with content here
-			builder = Some(builder.ok_or("Passport builder is double-spent")?.process(trimmed)?);
-			state = ReadState::LINE;
+			passport = passport.process(trimmed).map_err(|_| "passport process error")?;
+			state = ReadState::Line;
 		}
 	}
 
-	Ok((passports, errors))
+	Ok(passports)
 }
