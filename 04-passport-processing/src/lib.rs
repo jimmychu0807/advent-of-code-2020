@@ -70,6 +70,19 @@ impl PassportInvalid {
 	}
 }
 
+/**
+	In retrospect, it maybe better to use Passport::new(..) to also perform the validate function. So the function api would be:
+
+	```rust
+	pub fn new(...) -> Result<Self, PassportInvalid> {
+
+	}
+	```
+
+	Another key is what's the input params for `new(...)`. The problem
+	starts from lines of input. We could have a function that return a HashMap from the series of lines.
+ **/
+
 // -- Passport struct --
 #[derive(Default, Clone, PartialEq, Debug)]
 pub struct Passport {
