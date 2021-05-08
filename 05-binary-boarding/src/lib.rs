@@ -1,7 +1,9 @@
 use std::fmt;
+use std::collections::HashSet;
 
 const ROWS: u64 = 128;
 const COLS: u64 = 8;
+const ALL_SEATS: u64 = ROWS * COLS;
 
 pub struct Seat(String);
 
@@ -54,4 +56,30 @@ impl Seat {
 	pub fn id(&self) -> u64 {
 		self.row() * COLS + self.col()
 	}
+}
+
+pub fn find_empty_seats(seats: &[Seat]) -> HashSet<u64> {
+	let mut seat_set: HashSet<u64> = HashSet::new();
+	for n in 0..ALL_SEATS {
+		seat_set.insert(n as u64);
+	}
+
+	for seat in seats.iter() {
+		seat_set.remove(&seat.id());
+	}
+
+	// removing from the front, and removing from the end
+	let mut low_end = 0;
+	while seat_set.contains(&low_end) {
+		seat_set.remove(&low_end);
+		low_end += 1;
+	}
+
+	let mut high_end = ALL_SEATS - 1;
+	while seat_set.contains(&high_end) {
+		seat_set.remove(&high_end);
+		high_end -= 1;
+	}
+
+	seat_set
 }
