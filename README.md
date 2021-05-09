@@ -7,3 +7,4 @@ You are welcome 😉
 - [Day 03](03-toboggan-trajectory)
 - [Day 04](04-passport-processing)
 - [Day 05](05-binary-boarding)
+- [Day 06](06-custom-customs)

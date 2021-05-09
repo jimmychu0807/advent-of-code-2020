@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-// use std::error::Error;
 use shared::{read_file};
 use std::collections::HashMap;
 
@@ -74,8 +73,18 @@ impl PassportInvalid {
 	In retrospect, it maybe better to use Passport::new(..) to also perform the validate function. So the function api would be:
 
 	```rust
-	pub fn new(...) -> Result<Self, PassportInvalid> {
+	use std::collections::HashMap;
+	use passport_processing::{PassportInvalid, PassportField};
 
+	pub struct Passport {
+		pub fields: HashMap<String, PassportField>
+	};
+	impl Passport {
+		pub fn new() -> Result<Self, PassportInvalid> {
+			let fields = HashMap::new();
+			// -- construction code and return PassportInvalid error if failed
+			Ok(Passport { fields })
+		}
 	}
 	```
 
@@ -234,6 +243,11 @@ pub fn read_from_file(input: &str) -> Result<Vec<Passport>, &'static str> {
 			passport = passport.process(trimmed).map_err(|_| "passport process error")?;
 			state = ReadState::Line;
 		}
+	}
+
+	// Deal with the case that the last line with content is read
+	if let ReadState::Line = state {
+		passports.push(passport.clone());
 	}
 
 	Ok(passports)
