@@ -49,7 +49,7 @@ According to the above rules, your improved system would report `2` valid passpo
 
 Count the number of **valid** passports - those that have all required fields. Treat `cid` as optional. **In your batch file, how many passports are valid**
 
-To begin, get your puzzle input.
+Your puzzle answer was `170`.
 
 ## Part Two
 
@@ -126,3 +126,7 @@ iyr:2010 hgt:158cm hcl:#b6652a ecl:blu byr:1944 eyr:2021 pid:093154719
 ```
 
 Count the number of valid passports - those that have all required fields and valid values. Continue to treat `cid` as optional. In your batch file, how many passports are valid?
+
+Your puzzle answer was `103`.
+
+**Both parts of this puzzle are complete! They provide two gold stars: \*\***
