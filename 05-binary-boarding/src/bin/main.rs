@@ -8,7 +8,6 @@ fn main() -> Result<(), &'static str> {
 	// Part A
 	let seats = lines
 		.iter()
-		.filter(|line| !line.is_empty())
 		.map(|line| Seat::new(line))
 		.collect::<Vec<_>>();
 
