@@ -9,3 +9,4 @@ You are welcome 😉
 - [Day 05](05-binary-boarding)
 - [Day 06](06-custom-customs)
 - [Day 07](07-handy-haversacks)
+- [Day 08](08-handheld-halting)

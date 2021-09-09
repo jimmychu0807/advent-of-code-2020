@@ -7,5 +7,6 @@ members = [
 	"04-passport-processing",
 	"05-binary-boarding",
 	"06-custom-customs",
-	"07-handy-haversacks"
+	"07-handy-haversacks",
+	"08-handheld-halting"
 ]
