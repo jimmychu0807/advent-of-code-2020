@@ -1,0 +1,11 @@
+<html>
+  <head>
+  </head>
+
+  <body>
+    <p>Contain the following versions:</p>
+    <ul><%_ deploy_refs.split(/\s+/).forEach(ref => { %>
+      <li><a href="/<%- ref -%>"><%- ref -%></a></li>
+    <%_ }) _%></ul>
+  </body>
+</html>
