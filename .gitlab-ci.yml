@@ -18,7 +18,7 @@ before_script:
 build_rustdocs:
   stage: deploy
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "v3.0.0+monthly-2021-08" || $CI_COMMIT_REF_NAME == "v3.0.0+monthly-2021-09"'
+    - if: "[[ \" $RUSTDOCS_DEPLOY_REFS \" =~ \" ${CI_COMMIT_REF_NAME} \" ]]"
   image: ${CI_IMAGE}
   script: |
     mkdir public
