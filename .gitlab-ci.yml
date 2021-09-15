@@ -5,6 +5,8 @@ variables:                         &default-vars
   INDEX_TPL:    ".maintain/docs-index-tpl.ejs"
   REPO_NAME:    "advent-of-code-2020"
   REPO_URL:     "https://${GITHUB_TOKEN}@github.com/jimmychu0807/${REPO_NAME}.git"
+  DOC_INDEX_PAGE: "report_repair/index.html"
+  LATEST_DEST: "main"
 
 workflow:
   rules:
@@ -24,7 +26,7 @@ build_rustdocs:
     rm -f ./target/doc/.lock
     mkdir -p public/${CI_COMMIT_REF_NAME}
     cp -rf target/doc/* public/${CI_COMMIT_REF_NAME}
-    echo "<meta http-equiv=refresh content=0;url=report_repair/index.html>" > public/${CI_COMMIT_REF_NAME}/index.html
+    echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > public/${CI_COMMIT_REF_NAME}/index.html
   artifacts:
     paths:
       - public
@@ -71,7 +73,12 @@ publish_rustdocs:
 
     # Move the index page & built back
     mv -f /tmp/index.html .
+    # Ensure the destination dir is clear
+    rm -rf ${CI_COMMIT_REF_NAME}
     mv -f /tmp/docs ${CI_COMMIT_REF_NAME}
+
+    # Add the symlink
+    ln -sf ${LATEST_DEST} latest
 
     # push it back to github gh-pages
     git add --all --force
