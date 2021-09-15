@@ -1,11 +1,47 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substrate Rustdocs Index</title>
+    <meta name="description" content="Nothing here." />
+    <meta name="robots" content="noindex">
+    <style>
+      body {
+        font-family: Helvetica, Arial, Sans Serif;
+        margin: 0;
+      }
+      .center-me {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .content {
+        display: block;
+      }
+      .content li {
+        font-size: 1em;
+        line-height: .4em;
+        padding: .8em 0;
+      }
+    </style>
   </head>
 
   <body>
-    <p>Contain the following versions:</p>
-    <ul><%_ deploy_refs.split(/\s+/).forEach(ref => { %>
-      <li><a href="/<%- ref -%>"><%- ref -%></a></li>
-    <%_ }) _%></ul>
+    <div class="center-me">
+      <div class="content">
+        <h1>Parity Projects</h1>
+        <section>
+          Our Rustdocs:
+          <ul>
+            <%_ deploy_refs.split(/\s+/).forEach(ref => { _%>
+              <li><a href="/<%= repo_name _%>/<%= ref _%>"><%- ref -%></a></li>
+            <%_ }) _%>
+          </ul>
+        </section>
+      </div>
+    </div>
   </body>
 </html>
