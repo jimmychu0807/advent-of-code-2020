@@ -40,7 +40,7 @@
               <li>
                 <a href="/<%= repo_name _%>/<%= ref _%>"><%- ref -%></a>
                 <%_ if (latest && latest.trim() !== '' && latest === ref) { _%>
-                  (<a href="/latest">latest</a>)
+                  (<a href="/<%= repo_name _%>/latest">latest</a>)
                 <%_ } _%>
               </li>
             <%_ }) _%>
