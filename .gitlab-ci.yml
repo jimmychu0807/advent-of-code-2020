@@ -33,6 +33,8 @@ build_rustdocs:
 
 publish_rustdocs:
   stage: deploy
+  rules:
+    - if: '" $RUSTDOCS_DEPLOY_REFS " =~ " $CI_COMMIT_REF_NAME "'
   needs:
     - job: build_rustdocs
       artifacts: true
