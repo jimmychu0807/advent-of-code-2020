@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["find_empty_seats",""]],"struct":[["Seat",""]]});

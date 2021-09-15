@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["PassportField",""],["PassportInvalid",""],["PassportProcessError",""],["ReadState",""]],"fn":[["read_from_file",""]],"struct":[["Passport","In retrospect, it maybe better to use Passport::new(..) to also perform the validate function. So the function api would be:"]]});
