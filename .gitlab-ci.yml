@@ -47,7 +47,7 @@ publish_rustdocs:
 
     # generate index.html based on RUSTDOCS_DEPLOY_REFS
     yarn global add ejs
-    ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\"}" > /tmp/index.html
+    ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST_DEST}\"}" > /tmp/index.html
 
     # Set git config
     rm -rf .git/config

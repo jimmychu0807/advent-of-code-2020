@@ -37,7 +37,12 @@
           Our Rustdocs:
           <ul>
             <%_ deploy_refs.split(/\s+/).forEach(ref => { _%>
-              <li><a href="/<%= repo_name _%>/<%= ref _%>"><%- ref -%></a></li>
+              <li>
+                <a href="/<%= repo_name _%>/<%= ref _%>"><%- ref -%></a>
+                <%_ if (latest && latest.trim() !== '' && latest === ref) { _%>
+                  (<a href="/latest">latest</a>)
+                <%_ } _%>
+              </li>
             <%_ }) _%>
           </ul>
         </section>
