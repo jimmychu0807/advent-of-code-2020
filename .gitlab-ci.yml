@@ -61,13 +61,15 @@ build_rustdocs:
 
 publish_rustdocs:
   stage: deploy
+  rules:
+    - if: $REPUBLISH == "true"
+      when: never
+    - if: $CI_COMMIT_REF_NAME == "main"
+    - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
   needs:
     - job: build_rustdocs
       artifacts: true
   image: node:16
-  rules:
-    - if: $REPUBLISH == "true"
-      when: never
   before_script:
     - *install-git-lfs-script
   script:
