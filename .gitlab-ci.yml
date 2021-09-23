@@ -44,7 +44,7 @@ workflow:
 build_rustdocs:
   stage: deploy
   rules:
-    - if: $REPUBLISH == "true"
+    - if: $REPUBLISH_ALL_RUSTDOCS == "true"
       when: never
     - if: $CI_COMMIT_REF_NAME == "main"
     - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
@@ -62,7 +62,7 @@ build_rustdocs:
 publish_rustdocs:
   stage: deploy
   rules:
-    - if: $REPUBLISH == "true"
+    - if: $REPUBLISH_ALL_RUSTDOCS == "true"
       when: never
     - if: $CI_COMMIT_REF_NAME == "main"
     - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
@@ -105,7 +105,7 @@ publish_rustdocs:
 rebuild_all_rustdocs:
   stage: deploy
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH == "true"
+    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH_ALL_RUSTDOCS == "true"
   image: ${CI_IMAGE}
   before_script:
     - *install-git-lfs-script
@@ -129,7 +129,7 @@ rebuild_all_rustdocs:
 republish_all_rustdocs:
   stage: deploy
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH == "true"
+    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH_ALL_RUSTDOCS == "true"
   needs:
     - job: rebuild_all_rustdocs
       artifacts: true
