@@ -29,7 +29,7 @@ build_rustdocs:
     - mkdir -p public/${CI_COMMIT_REF_NAME}
     - cp -rf target/doc/* public/${CI_COMMIT_REF_NAME}
     - echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" >
-        public/${CI_COMMIT_REF_NAME}/index.html
+      public/${CI_COMMIT_REF_NAME}/index.html
   artifacts:
     paths:
       - public
@@ -63,12 +63,13 @@ publish_rustdocs:
     - git checkout gh-pages
 
     # Remove directories no longer necessary, as specified in $RUSTDOCS_DEPLOY_REFS.
-    # Check if $RUSTDOCS_DEPLOY_REFS is non-space
+    # Check if $RUSTDOCS_DEPLOY_REFS is non-space also.
+    # Even though this block spans multiple lines, they are concatenated and run as a single line command, so note for the semi-colons.
     - if [[ ! -z ${RUSTDOCS_DEPLOY_REFS// } ]]; then
         for FILE in *; do
           if [[ ! " $RUSTDOCS_DEPLOY_REFS " =~ " $FILE " ]]; then
-            echo "Removing ${FILE}..."
-            rm -rf $FILE
+            echo "Removing ${FILE}...";
+            rm -rf $FILE;
           fi
         done
       fi
