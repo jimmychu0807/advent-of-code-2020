@@ -7,8 +7,16 @@ pub struct Compiler {
 	debug: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
+pub enum ExitStatus {
+	Okay = 0,
+	Repeated = 1,
+	JumpOutOfBound = 2
+}
+
+#[derive(Debug)]
 pub struct ExecutedResult {
+	pub status: ExitStatus,
 	pub acc: i64,
 	pub executed: Vec<u64>
 }
@@ -26,13 +34,15 @@ impl Compiler {
 		// accumulator
 		let mut acc: i64 = 0;
 		let mut executed: Vec<u64> = vec![0; self.ins.len()];
+		let mut status = ExitStatus::Okay;
 
 		loop {
 			// terminate condition
-			if cursor < 0 ||                       // invalid cursor
-			  cursor >= (self.ins.len() as i64) || // invalid cursor
-				executed[cursor as usize] > 0        // ins executed the second time
-			{
+			if cursor < 0 || cursor >= (self.ins.len() as i64) {
+				status = ExitStatus::JumpOutOfBound;
+				break;
+			} else if executed[cursor as usize] > 0 {
+				status = ExitStatus::Repeated;
 				break;
 			}
 
@@ -46,8 +56,13 @@ impl Compiler {
 			if self.debug {
 				println!("acc: {}, executed: {:?}", acc, executed);
 			}
+
+			if cursor_delta == 1 && cursor == (self.ins.len() as i64) {
+				// successfully executed the last statement of the program
+				break;
+			}
 		}
-		Ok(ExecutedResult { acc, executed })
+		Ok(ExecutedResult { status, acc, executed })
 	}
 }
 
