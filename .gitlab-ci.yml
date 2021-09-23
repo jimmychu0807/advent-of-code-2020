@@ -15,8 +15,10 @@ workflow:
 
 .install-git-lfs-script:      &install-git-lfs-script
   # setup git lfs
+  - apt update
+  - apt install -y gnupg2
   - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-  - apt install git-lfs
+  - apt install -y git-lfs
 
 .gen-index-script:            &gen-index-script
   # generate index.html based on RUSTDOCS_DEPLOY_REFS
@@ -30,6 +32,7 @@ workflow:
   - git config user.name "${GITHUB_USER}"
   - git config remote.origin.url ${REPO_URL}
   - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+  - git fetch origin
 
 build_rustdocs:
   stage: deploy
@@ -97,7 +100,7 @@ publish_rustdocs:
 republish_rustdocs:
   stage: deploy
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH == "true"
   image: ${CI_IMAGE}
   before_script:
     - *install-git-lfs-script
@@ -105,7 +108,6 @@ republish_rustdocs:
     - *reset-gh-info-script
     - mkdir public
     - DEPLOY_ARR=($RUSTDOCS_DEPLOY_REFS)
-    - git fetch origin
     - for REF in "${DEPLOY_ARR[@]}"; do
         git checkout $REF || (echo "${REF} not existed in remote." && continue);
         cargo doc --no-deps --workspace --all-features --verbose;
