@@ -22,13 +22,14 @@ build_rustdocs:
     - if: $CI_COMMIT_REF_NAME == "v3.0.0+monthly-2021-08"
     - if: $CI_COMMIT_REF_NAME == "v3.0.0+monthly-2021-09"
   image: ${CI_IMAGE}
-  script: |
-    mkdir public
-    cargo doc --no-deps --workspace --all-features --verbose
-    rm -f ./target/doc/.lock
-    mkdir -p public/${CI_COMMIT_REF_NAME}
-    cp -rf target/doc/* public/${CI_COMMIT_REF_NAME}
-    echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > public/${CI_COMMIT_REF_NAME}/index.html
+  script:
+    - mkdir public
+    - cargo doc --no-deps --workspace --all-features --verbose
+    - rm -f ./target/doc/.lock
+    - mkdir -p public/${CI_COMMIT_REF_NAME}
+    - cp -rf target/doc/* public/${CI_COMMIT_REF_NAME}
+    - echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" >
+        public/${CI_COMMIT_REF_NAME}/index.html
   artifacts:
     paths:
       - public
@@ -39,53 +40,52 @@ publish_rustdocs:
     - job: build_rustdocs
       artifacts: true
   image: node:16
-  script: |
-    rm -rf /tmp/*
-    mv -f public/${CI_COMMIT_REF_NAME} /tmp/docs
+  script:
+    - rm -rf /tmp/*
+    - mv -f public/${CI_COMMIT_REF_NAME} /tmp/docs
 
     # setup git lfs
-    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-    apt install git-lfs
+    - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+    - apt install git-lfs
 
     # generate index.html based on RUSTDOCS_DEPLOY_REFS
-    yarn global add ejs
-    ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST_DEST}\"}" > /tmp/index.html
+    - yarn global add ejs
+    - 'ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST_DEST}\"}" > /tmp/index.html'
 
     # Set git config
-    rm -rf .git/config
-    git config user.email "gitlab-ci@hkwtf.com"
-    git config user.name "${GITHUB_USER}"
-    git config remote.origin.url ${REPO_URL}
+    - rm -rf .git/config
+    - git config user.email "gitlab-ci@hkwtf.com"
+    - git config user.name "${GITHUB_USER}"
+    - git config remote.origin.url ${REPO_URL}
+    - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+    - git fetch origin gh-pages
 
-    # switch over to `gh-pages` branch
-    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch origin gh-pages
-    git checkout gh-pages
+    - git checkout gh-pages
 
     # Remove directories no longer necessary, as specified in $RUSTDOCS_DEPLOY_REFS.
     # Check if $RUSTDOCS_DEPLOY_REFS is non-space
-    if [[ ! -z ${RUSTDOCS_DEPLOY_REFS// } ]]; then
-      for FILE in *; do
-        if [[ ! " $RUSTDOCS_DEPLOY_REFS " =~ " $FILE " ]]; then
-          echo "Removing ${FILE}..."
-          rm -rf $FILE
-        fi
-      done
-    fi
+    - if [[ ! -z ${RUSTDOCS_DEPLOY_REFS// } ]]; then
+        for FILE in *; do
+          if [[ ! " $RUSTDOCS_DEPLOY_REFS " =~ " $FILE " ]]; then
+            echo "Removing ${FILE}..."
+            rm -rf $FILE
+          fi
+        done
+      fi
 
     # Move the index page & built back
-    mv -f /tmp/index.html .
+    - mv -f /tmp/index.html .
     # Ensure the destination dir is clear
-    rm -rf ${CI_COMMIT_REF_NAME}
-    mv -f /tmp/docs ${CI_COMMIT_REF_NAME}
+    - rm -rf ${CI_COMMIT_REF_NAME}
+    - mv -f /tmp/docs ${CI_COMMIT_REF_NAME}
 
     # Add the symlink
-    ln -sf ${LATEST_DEST} latest
+    - ln -sf ${LATEST_DEST} latest
 
     # push it back to github gh-pages
-    git add --all --force
-    git commit -m "Updated docs for ${CI_COMMIT_REF_NAME}" || echo "___Nothing to commit___"
-    git push origin gh-pages --force
+    - git add --all --force
+    - git commit -m "Updated docs for ${CI_COMMIT_REF_NAME}" || echo "___Nothing to commit___"
+    - git push origin gh-pages --force
 
   after_script:
     - rm -rf .git/
