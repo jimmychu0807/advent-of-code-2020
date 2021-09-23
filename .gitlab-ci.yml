@@ -78,7 +78,6 @@ publish_rustdocs:
 
     - *gen-index-script
     - *reset-gh-info-script
-
     - git checkout gh-pages
 
     # Remove directories no longer necessary, as specified in $RUSTDOCS_DEPLOY_REFS.
@@ -139,9 +138,9 @@ republish_all_rustdocs:
     - *install-git-lfs-script
   script:
     - rm -rf /tmp/*
-    - *gen-index-script
     - mv public /tmp/doc
-
+    - *gen-index-script
+    - *reset-gh-info-script
     - git checkout gh-pages
     - rm -rf *
     - mv -f /tmp/doc/* .
