@@ -34,9 +34,18 @@ workflow:
   - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   - git fetch origin
 
+.git-force-push-rm-script:       &git-force-push-rm-script
+  # push it back to github gh-pages
+  - git add --all --force
+  - git commit -m "Updated docs for ${CI_COMMIT_REF_NAME}" || echo "___Nothing to commit___"
+  - git push origin gh-pages --force
+  - rm -rf .git/
+
 build_rustdocs:
   stage: deploy
   rules:
+    - if: $REPUBLISH == "true"
+      when: never
     - if: $CI_COMMIT_REF_NAME == "main"
     - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
   image: ${CI_IMAGE}
@@ -56,6 +65,9 @@ publish_rustdocs:
     - job: build_rustdocs
       artifacts: true
   image: node:16
+  rules:
+    - if: $REPUBLISH == "true"
+      when: never
   before_script:
     - *install-git-lfs-script
   script:
@@ -65,7 +77,6 @@ publish_rustdocs:
     - *gen-index-script
     - *reset-gh-info-script
 
-    - git fetch origin gh-pages
     - git checkout gh-pages
 
     # Remove directories no longer necessary, as specified in $RUSTDOCS_DEPLOY_REFS.
@@ -87,17 +98,10 @@ publish_rustdocs:
     - mv -f /tmp/docs ${CI_COMMIT_REF_NAME}
 
     # Add the symlink
-    - ln -sf ${LATEST_DEST} latest
+    - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
+    - *git-force-push-rm-script
 
-    # push it back to github gh-pages
-    - git add --all --force
-    - git commit -m "Updated docs for ${CI_COMMIT_REF_NAME}" ||
-      echo "___Nothing to commit___"
-    - git push origin gh-pages --force
-  after_script:
-    - rm -rf .git/
-
-republish_rustdocs:
+rebuild_all_rustdocs:
   stage: deploy
   rules:
     - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH == "true"
@@ -118,3 +122,29 @@ republish_rustdocs:
   artifacts:
     paths:
       - public
+  after_script:
+    - rm -rf .git/
+
+republish_all_rustdocs:
+  stage: deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH == "true"
+  needs:
+    - job: rebuild_all_rustdocs
+      artifacts: true
+  image: node:16
+  before_script:
+    - *install-git-lfs-script
+  script:
+    - rm -rf /tmp/*
+    - *gen-index-script
+    - mv public /tmp/doc
+
+    - git checkout gh-pages
+    - rm -rf *
+    - mv -f /tmp/doc/* .
+    - mv -f /tmp/index.html .
+
+    # Add the symlink
+    - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
+    - *git-force-push-rm-script
