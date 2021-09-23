@@ -6,7 +6,7 @@ variables:                         &default-vars
   REPO_NAME:    "advent-of-code-2020"
   REPO_URL:     "https://${GITHUB_TOKEN}@github.com/jimmychu0807/${REPO_NAME}.git"
   DOC_INDEX_PAGE: "report_repair/index.html"
-  LATEST_DEST: "main"
+  LATEST: "main"
 
 workflow:
   rules:
@@ -23,7 +23,7 @@ workflow:
 .gen-index-script:            &gen-index-script
   # generate index.html based on RUSTDOCS_DEPLOY_REFS
   - yarn global add ejs
-  - 'ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST_DEST}\"}" > /tmp/index.html'
+  - 'ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST}\"}" > /tmp/index.html'
 
 .reset-gh-info-script:        &reset-gh-info-script
   # Set git config
