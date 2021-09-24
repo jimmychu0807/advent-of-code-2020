@@ -1,20 +1,20 @@
 use regex::Regex;
 use lazy_static::lazy_static;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Compiler {
 	ins: Vec<String>,
 	debug: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExitStatus {
 	Okay = 0,
 	Repeated = 1,
 	JumpOutOfBound = 2
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExecutedResult {
 	pub status: ExitStatus,
 	pub acc: i64,
@@ -24,8 +24,11 @@ pub struct ExecutedResult {
 type Delta = (i64, i64);
 
 impl Compiler {
-	pub fn new(ins: Vec<String>, debug: bool) -> Compiler {
-		Compiler { ins, debug }
+	pub fn new(ins: &Vec<String>, debug: bool) -> Compiler {
+		Compiler {
+			ins: ins.clone(),
+			debug
+		}
 	}
 
 	pub fn execute(&self) -> Result<ExecutedResult, String> {
