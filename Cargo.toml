@@ -8,5 +8,6 @@ members = [
 	"05-binary-boarding",
 	"06-custom-customs",
 	"07-handy-haversacks",
-	"08-handheld-halting"
+	"08-handheld-halting",
+	"09-encoding-error",
 ]

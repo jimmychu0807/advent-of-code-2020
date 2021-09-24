@@ -26,6 +26,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding-error"
+version = "0.1.0"
+dependencies = [
+ "shared",
+]
+
+[[package]]
 name = "handheld-halting"
 version = "0.1.0"
 dependencies = [
