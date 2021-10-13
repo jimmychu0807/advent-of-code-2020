@@ -18,11 +18,12 @@ workflow:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
 
-.rm-rustdoc-reject-rule: &rm-rustdoc-reject-rule
+.build-rustdoc-rules: &build-rustdoc-rules
   - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
     when: never
+  - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "push"
 
-.rm-rustdoc-accept-rule: &rm-rustdoc-accept-rule
+.rm-rustdoc-rules: &rm-rustdoc-rules
   - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
 
 .install-git-lfs-script:      &install-git-lfs-script
@@ -72,7 +73,7 @@ build-rustdoc:
     <<: *default-vars
     <<: *gen-rustdoc-vars
   rules:
-    - *rm-rustdoc-reject-rule
+    - *build-rustdoc-rules
   image: ${CI_IMAGE}
   before_script:
     - *install-git-lfs-script
@@ -105,7 +106,7 @@ publish-rustdoc:
     - job: build-rustdoc
       artifacts: true
   rules:
-    - *rm-rustdoc-reject-rule
+    - *build-rustdoc-rules
   image: node:16
   before_script:
     - *install-git-lfs-script
@@ -133,7 +134,7 @@ publish-rustdoc:
 rm-rustdoc:
   stage: deploy
   rules:
-    - *rm-rustdoc-accept-rule
+    - *rm-rustdoc-rules
   variables:
     <<: *default-vars
     <<: *gen-rustdoc-vars
