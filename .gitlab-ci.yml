@@ -21,7 +21,8 @@ workflow:
 .build-rustdoc-rules: &build-rustdoc-rules
   - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
     when: never
-  - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "push"
+  - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "push" ||
+      ($CI_PIPELINE_SOURCE == "web" && $BUILD_RUSTDOC_REF)
 
 .rm-rustdoc-rules: &rm-rustdoc-rules
   - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
