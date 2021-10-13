@@ -1,17 +1,29 @@
 variables:                         &default-vars
   CI_IMAGE:                        "paritytech/ci-linux:production"
-  # variables related to generating docs & versioning
-  RUSTDOCS_DEPLOY_REFS:            "main v3.0.0+monthly-2021-08 v3.0.0+monthly-2021-09"
-  INDEX_TPL:    ".maintain/docs-index-tpl.ejs"
-  REPO_NAME:    "advent-of-code-2020"
-  REPO_URL:     "https://${GITHUB_TOKEN}@github.com/jimmychu0807/${REPO_NAME}.git"
-  DOC_INDEX_PAGE: "report_repair/index.html"
-  LATEST: "main"
+
+.gen-rustdoc-vars:                 &gen-rustdoc-vars
+  # Space separated values of branches and tags to generate rustdocs
+  CONT_RUSTDOC_BUILT_REFS:         "main master"
+  # Location of the docs index template
+  INDEX_TPL:                       ".maintain/docs-index-tpl.ejs"
+  REPO_URL:                        "https://${GITHUB_TOKEN}@github.com/jimmychu0807/advent-of-code-2020.git"
+  DOC_INDEX_PAGE:                  "report_repair/index.html" # default redirected page
+  # Where the `/latest` symbolic link links to. One of the $RUSTDOCS_DEPLOY_REFS value.
+  LATEST:                          "main"
+  GIT_DEPTH:                       100
+  SKIP_WASM_BUILD:                 1
 
 workflow:
   rules:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
+
+.rm-rustdoc-reject-rule: &rm-rustdoc-reject-rule
+  - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
+    when: never
+
+.rm-rustdoc-accept-rule: &rm-rustdoc-accept-rule
+  - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
 
 .install-git-lfs-script:      &install-git-lfs-script
   # setup git lfs
@@ -21,9 +33,9 @@ workflow:
   - apt install -y git-lfs
 
 .gen-index-script:            &gen-index-script
-  # generate index.html based on RUSTDOCS_DEPLOY_REFS
+  # generate index.html based on BUILD_REF
   - yarn global add ejs
-  - 'ejs ${INDEX_TPL} -i "{\"deploy_refs\": \"${RUSTDOCS_DEPLOY_REFS}\", \"repo_name\": \"${REPO_NAME}\", \"latest\": \"${LATEST}\"}" > /tmp/index.html'
+  - 'ejs ${INDEX_TPL} -i "{\"build_ref\":\"${BUILD_REF}\",\"repo_name\":\"${CI_PROJECT_NAME}\",\"latest\":\"${LATEST}\"}" > /tmp/index.html'
 
 .reset-gh-info-script:        &reset-gh-info-script
   # Set git config
@@ -41,110 +53,104 @@ workflow:
   - git push origin gh-pages --force
   - rm -rf .git/
 
-build_rustdocs:
+.test-build-rustdoc:  &test-build-rustdoc
+  # The actual check on whether we need to build rustdocs. This task will run if it is one of
+  #   branch/tag in CONT_RUSTDOC_BUILT_REFS or triggered via web with BUILD_RUSTDOC_REF set to
+  #   a branch/tag name.
+  - '[[ " ${CONT_RUSTDOC_BUILT_REFS} " =~ " ${CI_COMMIT_REF_NAME} " || -n "${BUILD_RUSTDOC_REF}" ]]
+    || { echo "No rustdoc built." && exit 0; }'
+  - '[[ " ${CONT_RUSTDOC_BUILT_REFS} " =~ " ${CI_COMMIT_REF_NAME} " ]]
+    && BUILD_REF=${CI_COMMIT_REF_NAME}
+    || BUILD_REF=${BUILD_RUSTDOC_REF}'
+
+.debug-script:  &debug-script
+  - set -x
+
+build-rustdoc:
   stage: deploy
+  variables:
+    <<: *default-vars
+    <<: *gen-rustdoc-vars
   rules:
-    - if: $REPUBLISH_ALL_RUSTDOCS == "true"
-      when: never
-    - if: $CI_COMMIT_REF_NAME == "main"
-    - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
+    - *rm-rustdoc-reject-rule
   image: ${CI_IMAGE}
+  before_script:
+    - *install-git-lfs-script
+    - *debug-script
   script:
-    - mkdir public
-    - cargo doc --no-deps --workspace --all-features --verbose
+    - *test-build-rustdoc
+    # Check if we are at the right branch/tag. if not check out the branch
+    - if [[ -n "${BUILD_RUSTDOC_REF}" ]]; then
+        git fetch --all;
+        git checkout -f $BUILD_RUSTDOC_REF ||
+          { echo "Checkout ${BUILD_RUSTDOC_REF} error." && exit 0; };
+      fi
+    # Actual rustdoc building
+    - time cargo doc --no-deps --workspace --all-features --verbose ||
+      { echo "Generate $BUILD_REF rustdocs failed" && exit 0; }
     - rm -f ./target/doc/.lock
-    - mv target/doc public/${CI_COMMIT_REF_NAME}
-    - echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > public/${CI_COMMIT_REF_NAME}/index.html
+    - mkdir public
+    - mv target/doc public/${BUILD_REF}
+    - echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > public/${BUILD_REF}/index.html
   artifacts:
     paths:
       - public
 
-publish_rustdocs:
+publish-rustdoc:
   stage: deploy
-  rules:
-    - if: $REPUBLISH_ALL_RUSTDOCS == "true"
-      when: never
-    - if: $CI_COMMIT_REF_NAME == "main"
-    - if: $CI_COMMIT_REF_NAME =~ /^monthly-20[0-9]{2}-[0-9]{2}.*$/  # to support: monthly-2021-09+1
+  variables:
+    <<: *default-vars
+    <<: *gen-rustdoc-vars
   needs:
-    - job: build_rustdocs
+    - job: build-rustdoc
       artifacts: true
+  rules:
+    - *rm-rustdoc-reject-rule
   image: node:16
   before_script:
     - *install-git-lfs-script
+    - *debug-script
   script:
+    - *test-build-rustdoc
     - rm -rf /tmp/*
-    - mv -f public/${CI_COMMIT_REF_NAME} /tmp/docs
+    - mv -f public/${BUILD_REF} /tmp/docs
 
-    - *gen-index-script
+    # TODO#1
+    - touch /tmp/index.html
+
     - *reset-gh-info-script
-    - git checkout gh-pages
-
-    # Remove directories no longer necessary, as specified in $RUSTDOCS_DEPLOY_REFS.
-    # Check if $RUSTDOCS_DEPLOY_REFS is non-space also.
-    # Even though this block spans multiple lines, they are concatenated and run as a single line command, so note for the semi-colons.
-    - if [[ ! -z ${RUSTDOCS_DEPLOY_REFS// } ]]; then
-        for FILE in *; do
-          if [[ ! " $RUSTDOCS_DEPLOY_REFS " =~ " $FILE " ]]; then
-            echo "Removing ${FILE}...";
-            rm -rf $FILE;
-          fi
-        done
-      fi
-
+    - git checkout -f gh-pages
     # Move the index page & built back
     - mv -f /tmp/index.html .
     # Ensure the destination dir is clear
-    - rm -rf ${CI_COMMIT_REF_NAME}
-    - mv -f /tmp/docs ${CI_COMMIT_REF_NAME}
+    - rm -rf ${BUILD_REF}
+    - mv -f /tmp/docs ${BUILD_REF}
 
     # Add the symlink
     - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
     - *git-force-push-rm-script
 
-rebuild_all_rustdocs:
+rm-rustdoc:
   stage: deploy
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH_ALL_RUSTDOCS == "true"
-  image: ${CI_IMAGE}
+    - *rm-rustdoc-accept-rule
+  variables:
+    <<: *default-vars
+    <<: *gen-rustdoc-vars
+    image: node:16
   before_script:
     - *install-git-lfs-script
+    - *debug-script
   script:
-    - *reset-gh-info-script
-    - mkdir public
-    - DEPLOY_ARR=($RUSTDOCS_DEPLOY_REFS)
-    - for REF in "${DEPLOY_ARR[@]}"; do
-        git checkout $REF || (echo "${REF} not existed in remote." && continue);
-        cargo doc --no-deps --workspace --all-features --verbose;
-        rm -f ./target/doc/.lock;
-        mv target/doc public/${REF};
-        echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > public/${REF}/index.html;
-      done
-  artifacts:
-    paths:
-      - public
-  after_script:
-    - rm -rf .git/
+    # TODO#2
+    - touch /tmp/index.html
 
-republish_all_rustdocs:
-  stage: deploy
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $REPUBLISH_ALL_RUSTDOCS == "true"
-  needs:
-    - job: rebuild_all_rustdocs
-      artifacts: true
-  image: node:16
-  before_script:
-    - *install-git-lfs-script
-  script:
-    - rm -rf /tmp/*
-    - mv public /tmp/doc
-    - *gen-index-script
     - *reset-gh-info-script
-    - git checkout gh-pages
-    - rm -rf *
-    - mv -f /tmp/doc/* .
+    - git checkout -f gh-pages
+    # Move the index page & built back
     - mv -f /tmp/index.html .
+    # Remove the dir
+    - rm -rf ${RM_RUSTDOC_REF}
 
     # Add the symlink
     - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
