@@ -1,6 +1,0 @@
-#!/usr/bin/env node
-
-// Usage:
-// 1. index-tpl-update upsert repo_name monthly-2021-10 latest index.html
-// 2. index-tpl-update rm monthly-2021-10 index.html
-

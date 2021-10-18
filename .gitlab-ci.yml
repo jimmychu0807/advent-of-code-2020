@@ -27,19 +27,34 @@ workflow:
 .rm-rustdoc-rules: &rm-rustdoc-rules
   - if: $CI_PIPELINE_SOURCE == "web" && $RM_RUSTDOC_REF
 
-.install-git-lfs-script:      &install-git-lfs-script
+.install-git-lfs-script:        &install-git-lfs-script
   # setup git lfs
   - apt update
   - apt install -y gnupg2
   - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
   - apt install -y git-lfs
 
-.gen-index-script:            &gen-index-script
+.gen-index-script-1:            &gen-index-script-1
   # generate index.html based on BUILD_REF
   - yarn global add ejs
   - 'ejs ${INDEX_TPL} -i "{\"build_ref\":\"${BUILD_REF}\",\"repo_name\":\"${CI_PROJECT_NAME}\",\"latest\":\"${LATEST}\"}" > /tmp/index.html'
 
-.reset-gh-info-script:        &reset-gh-info-script
+.gen-index-script-2:            &gen-index-script-2
+  # generate index.html based on BUILD_REF
+  - yarn global add @jimmychu0807/index-tpl-crud
+  - '[[ "${RESET_INDEX}" == "true" ]] && index-tpl-crud init
+    ${GH_REPO ||- CI_PROJECT_NAME} "Advent of Code 2020" /tmp/index.html'
+  - 'if [[ ${LATEST} == ${BUILD_REF} ]]; then
+      index-tpl-crud upsert -l /tmp/index.html ${BUILD_REF};
+    else
+      index-tpl-crud upsert /tmp/index.html ${BUILD_REF};'
+
+.update-index-script:           &update-index-script
+  - cp index.html /tmp
+  - *gen-index-script-2
+  - mv -f /tmp/index.html .
+
+.reset-gh-info-script:          &reset-gh-info-script
   # Set git config
   - rm -rf .git/config
   - git config user.email "gitlab-ci@hkwtf.com"
@@ -48,7 +63,7 @@ workflow:
   - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
   - git fetch origin
 
-.git-force-push-rm-script:       &git-force-push-rm-script
+.git-force-push-rm-script:      &git-force-push-rm-script
   # push it back to github gh-pages
   - git add --all --force
   - git commit -m "Updated docs for ${CI_COMMIT_REF_NAME}" || echo "___Nothing to commit___"
@@ -116,18 +131,12 @@ publish-rustdoc:
     - *test-build-rustdoc
     - rm -rf /tmp/*
     - mv -f public/${BUILD_REF} /tmp/docs
-
-    # TODO#1
-    - touch /tmp/index.html
-
     - *reset-gh-info-script
     - git checkout -f gh-pages
-    # Move the index page & built back
-    - mv -f /tmp/index.html .
+    - *update-index-script
     # Ensure the destination dir is clear
     - rm -rf ${BUILD_REF}
     - mv -f /tmp/docs ${BUILD_REF}
-
     # Add the symlink
     - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
     - *git-force-push-rm-script
@@ -149,11 +158,9 @@ rm-rustdoc:
 
     - *reset-gh-info-script
     - git checkout -f gh-pages
-    # Move the index page & built back
-    - mv -f /tmp/index.html .
+    - *update-index-script
     # Remove the dir
     - rm -rf ${RM_RUSTDOC_REF}
-
     # Add the symlink
     - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
     - *git-force-push-rm-script
