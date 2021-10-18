@@ -110,12 +110,12 @@ build-rustdoc:
 
 publish-rustdoc:
   stage: deploy
-  variables:
-    <<: *default-vars
-    <<: *gen-rustdoc-vars
   needs:
     - job: build-rustdoc
       artifacts: true
+  variables:
+    <<: *default-vars
+    <<: *gen-rustdoc-vars
   rules:
     - *build-rustdoc-rules
   image: node:16
@@ -141,12 +141,12 @@ publish-rustdoc:
 
 rm-rustdoc:
   stage: deploy
-  rules:
-    - *rm-rustdoc-rules
   variables:
     <<: *default-vars
     <<: *gen-rustdoc-vars
-    image: node:16
+  rules:
+    - *rm-rustdoc-rules
+  image: node:16
   before_script:
     - *install-git-lfs-script
     - *debug-script
