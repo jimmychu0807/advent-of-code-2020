@@ -44,9 +44,7 @@ workflow:
 
 .rm-index-script:               &rm-index-script
   - yarn global add @jimmychu0807/index-tpl-crud
-  - '[[ "${LATEST}" == "${RM_RUSTDOC_REF}" ]]
-    && index-tpl-crud rm -l /tmp/index.html ${RM_RUSTDOC_REF}
-    || index-tpl-crud rm /tmp/index.html ${RM_RUSTDOC_REF}'
+  - index-tpl-crud rm /tmp/index.html ${RM_RUSTDOC_REF}
 
 .reset-gh-info-script:          &reset-gh-info-script
   # Set git config
@@ -156,5 +154,5 @@ rm-rustdoc:
     # Remove the dir
     - rm -rf ${RM_RUSTDOC_REF}
     # Add the symlink
-    - '[[ -h latest && ${RM_RUSTDOC_REF} == latest ]] && rm latest'
+    - '[[ -h latest && "(readlink -f latest)" =~ ^.*${RM_RUSTDOC_REF}$ ]] && rm latest'
     - *git-force-push-rm-script
