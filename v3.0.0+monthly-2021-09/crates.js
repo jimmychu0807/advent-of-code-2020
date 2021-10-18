@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["binary_boarding","custom_customs","handheld_halting","handy_haversacks","passport_processing","password_philosophy","report_repair","shared","toboggan_trajectory"];
