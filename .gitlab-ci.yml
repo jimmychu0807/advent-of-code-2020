@@ -70,9 +70,9 @@ workflow:
   #   a branch/tag name.
   - '[[ " ${CONT_RUSTDOC_BUILT_REFS} " =~ " ${CI_COMMIT_REF_NAME} " || -n "${BUILD_RUSTDOC_REF}" ]]
     || { echo "No rustdoc built." && exit 0; }'
-  - '[[ " ${CONT_RUSTDOC_BUILT_REFS} " =~ " ${CI_COMMIT_REF_NAME} " ]]
-    && BUILD_REF=${CI_COMMIT_REF_NAME}
-    || BUILD_REF=${BUILD_RUSTDOC_REF}'
+  - '[[ -n ${BUILD_RUSTDOC_REF} ]]
+    && BUILD_REF=${BUILD_RUSTDOC_REF}
+    || BUILD_REF=${CI_COMMIT_REF_NAME}'
 
 .debug-script:  &debug-script
   - set -x
@@ -156,5 +156,5 @@ rm-rustdoc:
     # Remove the dir
     - rm -rf ${RM_RUSTDOC_REF}
     # Add the symlink
-    - '[[ -e "$LATEST" ]] && ln -sf "${LATEST}" latest'
+    - '[[ -h latest && ${RM_RUSTDOC_REF} == latest ]] && rm latest'
     - *git-force-push-rm-script
