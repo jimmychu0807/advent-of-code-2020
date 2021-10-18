@@ -131,7 +131,7 @@ publish-rustdoc:
     - rm -rf ${BUILD_REF}
     - mv -f /tmp/docs ${BUILD_REF}
     # Add the symlink
-    - '[[ -e "$LATEST" ]] && { rm latest; ln -sf "${LATEST}" latest; }'
+    - '[[ -e "$LATEST" ]] && { [[ -h latest ]] && rm latest; ln -sf "${LATEST}" latest; }'
     - *git-force-push-rm-script
 
 rm-rustdoc:
