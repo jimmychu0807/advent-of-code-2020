@@ -34,25 +34,20 @@ workflow:
   - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
   - apt install -y git-lfs
 
-.gen-index-script-1:            &gen-index-script-1
-  # generate index.html based on BUILD_REF
-  - yarn global add ejs
-  - 'ejs ${INDEX_TPL} -i "{\"build_ref\":\"${BUILD_REF}\",\"repo_name\":\"${CI_PROJECT_NAME}\",\"latest\":\"${LATEST}\"}" > /tmp/index.html'
-
-.gen-index-script-2:            &gen-index-script-2
+.upsert-index-script:            &upsert-index-script
   # generate index.html based on BUILD_REF
   - yarn global add @jimmychu0807/index-tpl-crud
   - '[[ "${RESET_INDEX}" == "true" ]] && index-tpl-crud init
-    ${GH_REPO ||- CI_PROJECT_NAME} "Advent of Code 2020" /tmp/index.html'
-  - 'if [[ ${LATEST} == ${BUILD_REF} ]]; then
-      index-tpl-crud upsert -l /tmp/index.html ${BUILD_REF};
-    else
-      index-tpl-crud upsert /tmp/index.html ${BUILD_REF};'
+    "${GH_REPO:-CI_PROJECT_NAME}" "Advent of Code 2020" /tmp/index.html'
+  - '[[ "${LATEST}" == "${BUILD_REF}" ]]
+    && index-tpl-crud upsert -l /tmp/index.html ${BUILD_REF}
+    || index-tpl-crud upsert /tmp/index.html ${BUILD_REF}'
 
-.update-index-script:           &update-index-script
-  - cp index.html /tmp
-  - *gen-index-script-2
-  - mv -f /tmp/index.html .
+.rm-index-script:               &rm-index-script
+  - yarn global add @jimmychu0807/index-tpl-crud
+  - '[[ "${LATEST}" == "${RM_RUSTDOC_REF}" ]]
+    && index-tpl-crud rm -l /tmp/index.html ${RM_RUSTDOC_REF}
+    || index-tpl-crud rm /tmp/index.html ${RM_RUSTDOC_REF}'
 
 .reset-gh-info-script:          &reset-gh-info-script
   # Set git config
@@ -133,7 +128,10 @@ publish-rustdoc:
     - mv -f public/${BUILD_REF} /tmp/docs
     - *reset-gh-info-script
     - git checkout -f gh-pages
-    - *update-index-script
+    # Upsert <li/> entry into the index.html
+    - cp index.html /tmp
+    - *upsert-index-script
+    - mv -f /tmp/index.html .
     # Ensure the destination dir is clear
     - rm -rf ${BUILD_REF}
     - mv -f /tmp/docs ${BUILD_REF}
@@ -153,12 +151,12 @@ rm-rustdoc:
     - *install-git-lfs-script
     - *debug-script
   script:
-    # TODO#2
-    - touch /tmp/index.html
-
     - *reset-gh-info-script
     - git checkout -f gh-pages
-    - *update-index-script
+    # Rm <li/> entry from the index.html
+    - cp index.html /tmp
+    - *rm-index-script
+    - mv -f /tmp/index.html .
     # Remove the dir
     - rm -rf ${RM_RUSTDOC_REF}
     # Add the symlink
