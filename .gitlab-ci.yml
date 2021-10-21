@@ -154,5 +154,5 @@ rm-rustdoc:
     # Remove the dir
     - rm -rf ${RM_RUSTDOC_REF}
     # Add the symlink
-    - '[[ -h latest && "$(readlink latest)" == "{RM_RUSTDOC_REF}" ]] && rm latest'
+    - '[[ -h latest && "$(readlink latest)" == "${RM_RUSTDOC_REF}" ]] && rm latest'
     - *git-force-push-rm-script
