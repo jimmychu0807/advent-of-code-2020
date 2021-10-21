@@ -1,10 +1,9 @@
 variables:                         &default-vars
   CI_IMAGE:                        "paritytech/ci-linux:production"
 
-.gen-rustdoc-vars:                 &gen-rustdoc-vars
+.build-rustdoc-vars:               &build-rustdoc-vars
   # Space separated values of branches and tags to generate rustdocs
   CONT_RUSTDOC_BUILT_REFS:         "main master"
-  # Location of the docs index template
   REPO_URL:                        "https://${GITHUB_TOKEN}@github.com/jimmychu0807/advent-of-code-2020.git"
   DOC_INDEX_PAGE:                  "report_repair/index.html" # default redirected page
   # Where the `/latest` symbolic link links to.
@@ -37,7 +36,7 @@ workflow:
   # generate index.html based on BUILD_REF
   - yarn global add @jimmychu0807/index-tpl-crud
   - '[[ "${RESET_INDEX}" == "true" ]] && index-tpl-crud init
-    "${GH_REPO:-CI_PROJECT_NAME}" "Advent of Code 2020" /tmp/index.html'
+    "${GH_REPO:-$CI_PROJECT_NAME}" "Advent of Code 2020" /tmp/index.html'
   - '[[ "${LATEST}" == "${BUILD_REF}" ]]
     && index-tpl-crud upsert -l /tmp/index.html ${BUILD_REF}
     || index-tpl-crud upsert /tmp/index.html ${BUILD_REF}'
@@ -79,7 +78,7 @@ build-rustdoc:
   stage: deploy
   variables:
     <<: *default-vars
-    <<: *gen-rustdoc-vars
+    <<: *build-rustdoc-vars
   rules:
     - *build-rustdoc-rules
   image: ${CI_IMAGE}
@@ -111,7 +110,7 @@ publish-rustdoc:
       artifacts: true
   variables:
     <<: *default-vars
-    <<: *gen-rustdoc-vars
+    <<: *build-rustdoc-vars
   rules:
     - *build-rustdoc-rules
   image: node:16
@@ -138,7 +137,7 @@ rm-rustdoc:
   stage: deploy
   variables:
     <<: *default-vars
-    <<: *gen-rustdoc-vars
+    <<: *build-rustdoc-vars
   rules:
     - *rm-rustdoc-rules
   image: node:16
