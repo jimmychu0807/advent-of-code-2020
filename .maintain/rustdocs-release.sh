@@ -64,25 +64,25 @@ mv target/doc "${DOC_PATH}"
 
 # git checkout `gh-pages` branch
 git fetch "${GIT_REMOTE}" gh-pages
-yarn global add ejs
-# TODO
-# ejs ${INDEX_TPL} -i "{\"deploy_refs\":\"${RUSTDOCS_DEPLOY_REFS}\",\"repo_name\":\"${CI_PROJECT_NAME}\",\"latest\":\"${LATEST}\"}" > /tmp/index.html
-echo "My index page" > "${TMP_PROJECT_PATH}/index.html"
-
 
 git checkout gh-pages
-# Move the index page & built back
-cp -f "${TMP_PROJECT_PATH}/index.html" .
+# Move the built back
 [[ -e "${TMP_PROJECT_PATH}/.gitignore" ]] && cp -f "${TMP_PROJECT_PATH}/.gitignore" .
 # Ensure the destination dir doesn't exist under current path.
 rm -rf "${BUILD_RUSTDOC_REF}"
 mv -f "${DOC_PATH}" "${BUILD_RUSTDOC_REF}"
+
+# -- Run `index-tpl-crud` to update the index.html
+# Check if `index-tpl-crud` exists
+which index-tpl-crud &> /dev/null || yarn global add @jimmychu0807/index-tpl-crud
+index-tpl-crud upsert $($LATEST && echo "-l") ./index.html "$BUILD_RUSTDOC_REF"
+
 # Add the symlink
 $LATEST && rm -rf latest && ln -sf "${BUILD_RUSTDOC_REF}" latest
 # Upload files
 git add --all
 git commit -m "___Updated docs for ${BUILD_RUSTDOC_REF}___" || echo "___Nothing to commit___"
-# git push "${GIT_REMOTE}" gh-pages --force
+git push "${GIT_REMOTE}" gh-pages --force
 
 # Remove the tmp asset created
 rm -rf "${TMP_PROJECT_PATH}"
