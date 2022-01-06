@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -x
 
 # 1. checkout the certain branch / tag
 # 2. Run `cargo build to build the docs`
@@ -36,56 +36,72 @@ SUBCMD=$1
 BUILD_RUSTDOC_REF=$2
 LATEST=true
 
-# Check there is no local changes before proceeding
-[[ -n $(git status --porcelain) ]] && echo "Local changes exist, please either discard or commit them as this command will change the current checkout branch." && exit 0
+check_local_change() {
+  # Check there is no local changes before proceeding
+  [[ -n $(git status --porcelain) ]] \
+    && echo "Local changes exist, please either discard or commit them as this command will change the current checkout branch." \
+    && exit 0
+}
 
-CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-TMP_PROJECT_PATH="${TMP_PREFIX}/${PROJECT_NAME}"
-DOC_PATH="${TMP_PROJECT_PATH}/${BUILD_RUSTDOC_REF}"
+build_rustdocs() {
+  # Build the docs
+  time cargo $($CARGO_NIGHTLY && echo "+nightly") doc --no-deps --workspace --all-features --verbose \
+    || { echo "Generate $1 rustdocs failed" && exit 0; }
+  rm -f target/doc/.lock
 
-rm -rf "${TMP_PROJECT_PATH}" && mkdir "${TMP_PROJECT_PATH}"
+  # Moving the built doc to the tmp location
+  mv target/doc "${2}"
+  [[ -n "${DOC_INDEX_PAGE}" ]] \
+    && echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > "${2}/index.html"
+}
 
-# Copy .gitignore file to tmp
-[[ -e "${PROJECT_PATH}/.gitignore" ]] && cp "${PROJECT_PATH}/.gitignore" "${TMP_PROJECT_PATH}"
+update_index_page() {
+  # Check if `index-tpl-crud` exists
+  which index-tpl-crud &> /dev/null || yarn global add @jimmychu0807/index-tpl-crud
+  index-tpl-crud upsert $($1 && echo "-l") ./index.html "$2"
+}
 
-git fetch --all
-git checkout -f $BUILD_RUSTDOC_REF || { echo "Checkout ${BUILD_RUSTDOC_REF} error." && exit 0; };
+main() {
+  check_local_change
 
-# Build the docs
-time cargo $($CARGO_NIGHTLY && echo "+nightly") doc --no-deps --workspace --all-features --verbose || \
-  { echo "Generate $BUILD_RUSTDOC_REF rustdocs failed" && exit 0; }
-rm -f target/doc/.lock
+  CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  TMP_PROJECT_PATH="${TMP_PREFIX}/${PROJECT_NAME}"
+  DOC_PATH="${TMP_PROJECT_PATH}/${BUILD_RUSTDOC_REF}"
 
-# Moving the built doc to the tmp location
-mv target/doc "${DOC_PATH}"
+  # Build the tmp project path
+  rm -rf "${TMP_PROJECT_PATH}" && mkdir "${TMP_PROJECT_PATH}"
 
-[[ -n "${DOC_INDEX_PAGE}" ]] && \
-  echo "<meta http-equiv=refresh content=0;url=${DOC_INDEX_PAGE}>" > "${DOC_PATH}/index.html"
+  # Copy .gitignore file to tmp
+  [[ -e "${PROJECT_PATH}/.gitignore" ]] && cp "${PROJECT_PATH}/.gitignore" "${TMP_PROJECT_PATH}"
 
-# git checkout `gh-pages` branch
-git fetch "${GIT_REMOTE}" gh-pages
+  git fetch --all
+  git checkout -f ${BUILD_RUSTDOC_REF} || { echo "Checkout \`${BUILD_RUSTDOC_REF}\` error." && exit 0; };
+  build_rustdocs "${BUILD_RUSTDOC_REF}" "${DOC_PATH}"
 
-git checkout gh-pages
-# Move the built back
-[[ -e "${TMP_PROJECT_PATH}/.gitignore" ]] && cp -f "${TMP_PROJECT_PATH}/.gitignore" .
-# Ensure the destination dir doesn't exist under current path.
-rm -rf "${BUILD_RUSTDOC_REF}"
-mv -f "${DOC_PATH}" "${BUILD_RUSTDOC_REF}"
+  # git checkout `gh-pages` branch
+  git fetch "${GIT_REMOTE}" gh-pages
+  git checkout gh-pages
+  # Move the built back
+  [[ -e "${TMP_PROJECT_PATH}/.gitignore" ]] && cp -f "${TMP_PROJECT_PATH}/.gitignore" .
+  # Ensure the destination dir doesn't exist under current path.
+  rm -rf "${BUILD_RUSTDOC_REF}"
+  mv -f "${DOC_PATH}" "${BUILD_RUSTDOC_REF}"
 
-# -- Run `index-tpl-crud` to update the index.html
-# Check if `index-tpl-crud` exists
-which index-tpl-crud &> /dev/null || yarn global add @jimmychu0807/index-tpl-crud
-index-tpl-crud upsert $($LATEST && echo "-l") ./index.html "$BUILD_RUSTDOC_REF"
+  update_index_page $LATEST "${BUILD_RUSTDOC_REF}"
+  # Add the latest symlink
+  $LATEST && rm -rf latest && ln -sf "${BUILD_RUSTDOC_REF}" latest
 
-# Add the symlink
-$LATEST && rm -rf latest && ln -sf "${BUILD_RUSTDOC_REF}" latest
-# Upload files
-git add --all
-git commit -m "___Updated docs for ${BUILD_RUSTDOC_REF}___" || echo "___Nothing to commit___"
-git push "${GIT_REMOTE}" gh-pages --force
+  # git commit and push
+  git add --all
+  git commit -m "___Updated docs for ${BUILD_RUSTDOC_REF}___" || echo "___Nothing to commit___"
+  git push "${GIT_REMOTE}" gh-pages --force
 
-# Remove the tmp asset created
-rm -rf "${TMP_PROJECT_PATH}"
+  # Clean up
+  # Remove the tmp asset created
+  rm -rf "${TMP_PROJECT_PATH}"
 
-# Resume back previous checkout branch.
-git checkout -f "$CURRENT_GIT_BRANCH"
+  # Resume back previous checkout branch.
+  git checkout -f "$CURRENT_GIT_BRANCH"
+}
+
+main
